@@ -5,7 +5,7 @@ import numpy as np
 import wx
 import wx.lib.agw.floatspin as FS
 from wxmplot.plotframe import PlotFrame
-from PECTelescope import PECTelescope
+from pec_telescope import PECTelescope
 from typing import List
 
 
