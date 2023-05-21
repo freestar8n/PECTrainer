@@ -8,6 +8,7 @@ from wxmplot.plotframe import PlotFrame
 from PECTelescope import PECTelescope
 from typing import List
 
+
 class PecTrainer(wx.Frame):
     def __init__(self, parent=None, *args, **kwds):
 
@@ -16,28 +17,25 @@ class PecTrainer(wx.Frame):
         self.mount_name = 'unknown'
         self.avg = None
 
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE|wx.RESIZE_BORDER|wx.TAB_TRAVERSAL
+        kwds["style"] = wx.DEFAULT_FRAME_STYLE | wx.RESIZE_BORDER | wx.TAB_TRAVERSAL
 
-        wx.Frame.__init__(self, parent, -1, '',
-                         wx.DefaultPosition, wx.Size(-1,-1), **kwds)
+        wx.Frame.__init__(self, parent, -1, '',  wx.DefaultPosition, wx.Size(-1, -1), **kwds)
         self.SetTitle("PEC Trainer")
 
         self.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD, False))
 
-        self.plotframe  = None
+        self.plotframe = None
 
         framesizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.panel      = wx.Panel(self, -1, size=(-1, -1))
+        self.panel = wx.Panel(self, -1, size=(-1, -1))
         panelsizer = wx.BoxSizer(wx.VERTICAL)
-        pad        = 10
+        pad = 10
 
-        panelsizer.Add(wx.StaticText(self.panel, -1, 'PEC Trainer for Celestron'),
-                        0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(wx.StaticText(self.panel, -1, 'by Frank Freestar8n'),
-                        0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        
-        self.b_choose = wx.Button(self.panel, -1, 'Choose mount',    size=(-1,-1))
+        panelsizer.Add(wx.StaticText(self.panel, -1, 'PEC Trainer for Celestron'), 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(wx.StaticText(self.panel, -1, 'by Frank Freestar8n'), 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+
+        self.b_choose = wx.Button(self.panel, -1, 'Choose mount',    size=(-1, -1))
         period_label = wx.StaticText(self.panel, -1, 'Worm Period (s)')
         period_label.SetToolTip('Enter the worm period for the mount')
         self.fs_period = FS.FloatSpin(self.panel, -1, min_val=100, max_val=900, increment=0.1, value=self.worm_period, size=(80, -1))
@@ -50,59 +48,59 @@ class PecTrainer(wx.Frame):
         self.c_n_cycles.SetSelection(5)
         self.cb_index = wx.CheckBox(self.panel, -1, 'Seek Index', size=(-1, -1))
         self.cb_index.Disable()
-        self.b_start = wx.Button(self.panel, -1, 'Start Training',    size=(-1,-1))
+        self.b_start = wx.Button(self.panel, -1, 'Start Training',    size=(-1, -1))
         self.b_start.Disable()
         self.current_cycle_label = wx.StaticText(self.panel, -1, 'Curr Cycle:')
         self.current_cycle_label.Disable()
         self.c_current_cycle = wx.Choice(self.panel, -1, choices=[str(i + 1) for i in range(10)], size=(-1, -1))
         self.c_current_cycle.SetSelection(0)
         self.c_current_cycle.Disable()
-        self.b_cancel = wx.Button(self.panel, -1, 'Stop Training',    size=(-1,-1))
+        self.b_cancel = wx.Button(self.panel, -1, 'Stop Training',    size=(-1, -1))
         self.b_cancel.Disable()
-        self.b_upload = wx.Button(self.panel, -1, 'Upload',    size=(-1,-1))
+        self.b_upload = wx.Button(self.panel, -1, 'Upload',    size=(-1, -1))
         self.b_upload.SetToolTip('Upload the curve to the mount')
         self.b_upload.Disable()
-        self.b_download = wx.Button(self.panel, -1, 'Download from mount', size=(-1,-1))
+        self.b_download = wx.Button(self.panel, -1, 'Download from mount', size=(-1, -1))
         self.b_download.SetToolTip('Download and view PEC curve from mount')
         self.b_download.Disable()
-        self.b_load_file = wx.Button(self.panel, -1, 'Load File',    size=(-1,-1))
+        self.b_load_file = wx.Button(self.panel, -1, 'Load File',    size=(-1, -1))
         self.b_load_file.SetToolTip('Load curve from file to view with option to upload to mount')
         self.cb_playback = wx.CheckBox(self.panel, -1, 'Playback', size=(-1, -1))
         self.cb_playback.Disable()
 
-        panelsizer.Add(self.b_choose, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        panelsizer.Add(self.b_choose, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(period_label, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox.Add(period_label, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         hbox.AddStretchSpacer(1)
-        hbox.Add(self.fs_period, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(hbox, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox.Add(self.fs_period, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(hbox, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
-        panelsizer.Add(self.cb_con, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        panelsizer.Add(self.cb_con, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(cycles_label, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox.Add(cycles_label, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         hbox.AddStretchSpacer(1)
-        hbox.Add(self.c_n_cycles, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(hbox, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox.Add(self.c_n_cycles, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(hbox, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
-        panelsizer.Add(self.cb_index, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.b_start, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        panelsizer.Add(self.cb_index, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.b_start, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox2.Add(self.current_cycle_label, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox2.Add(self.current_cycle_label, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         hbox2.AddStretchSpacer(1)
-        hbox2.Add(self.c_current_cycle, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(hbox2, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.b_cancel, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.b_upload, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.b_download, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.b_load_file, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
-        panelsizer.Add(self.cb_playback, 0, wx.ALIGN_LEFT|wx.ALIGN_CENTER|wx.LEFT, pad)
+        hbox2.Add(self.c_current_cycle, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(hbox2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.b_cancel, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.b_upload, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.b_download, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.b_load_file, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.cb_playback, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         self.panel.SetSizer(panelsizer)
         panelsizer.Fit(self.panel)
 
-        framesizer.Add(self.panel, 0, wx.ALIGN_LEFT|wx.EXPAND,2)
+        framesizer.Add(self.panel, 0, wx.ALIGN_LEFT | wx.EXPAND, 2)
         self.SetSizer(framesizer)
         framesizer.Fit(self)
 
@@ -128,7 +126,7 @@ class PecTrainer(wx.Frame):
 
     def choose(self, event: wx.Event):
         if not self.tel.choose():
-            wx.MessageBox(f'Problem launching chooser', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Problem launching chooser', 'Error', wx.OK | wx.ICON_ERROR)
 
     def connect(self, event: wx.Event):
         doit = event.EventObject.Value
@@ -141,7 +139,7 @@ class PecTrainer(wx.Frame):
         if doit:
             value, rc = self.tel.index_value()
             if not rc:
-                wx.MessageBox(f'Error getting index status', 'Error', wx.OK | wx.ICON_ERROR)
+                wx.MessageBox('Error getting index status', 'Error', wx.OK | wx.ICON_ERROR)
                 return
             if value:
                 self.cb_index.Value = True
@@ -163,7 +161,7 @@ class PecTrainer(wx.Frame):
     def find_index(self, event: wx.Event):
         value, rc = self.tel.index_value()
         if not rc:
-            wx.MessageBox(f'Error getting index status', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Error getting index status', 'Error', wx.OK | wx.ICON_ERROR)
             return
         if not value:
             self.tel.mark_ra()
@@ -182,7 +180,7 @@ class PecTrainer(wx.Frame):
             self.avg = None
             self.runs = []
         if not self.tel.record(True):
-            wx.MessageBox(f'Error starting record', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Error starting record', 'Error', wx.OK | wx.ICON_ERROR)
             return
         self.b_start.Disable()
         self.b_cancel.Enable()
@@ -216,10 +214,10 @@ class PecTrainer(wx.Frame):
             fpath = path / fname
             if not fpath.exists():
                 return fpath
-            
+
     def set_playback(self, event: wx.Event):
         if not self.tel.playback(self.cb_playback.Value):
-            wx.MessageBox('Error setting playback', 'Error', wx.OK | wx.ICON_ERROR)        
+            wx.MessageBox('Error setting playback', 'Error', wx.OK | wx.ICON_ERROR)
 
     def upload(self, event: wx.Event):
         if self.avg is None:
@@ -237,7 +235,7 @@ class PecTrainer(wx.Frame):
         try:
             self.tel.Action('Telescope:PecSetData', avg_str)
         except Exception as e:
-            wx.MessageBox(f'Error loading data to mount {e}', 'Error', wx.OK | wx.ICON_ERROR)        
+            wx.MessageBox(f'Error loading data to mount {e}', 'Error', wx.OK | wx.ICON_ERROR)
 
         print()
         fpath = self.make_file_name(pathlib.Path.cwd(), 'PEC')
@@ -253,13 +251,13 @@ class PecTrainer(wx.Frame):
         print('saved to file', fpath)
         self.b_start.Enable()
 
-    def get_pec_from_mount(self, raw=False) -> np.array:  
+    def get_pec_from_mount(self, raw=False) -> np.array:
         print('getting pec data')
         try:
             run_str = self.tel.Action('Telescope:PecGetData', '')
         except Exception as e:
             wx.MessageBox(f'Error getting PEC data from mount {e}', 'Error', wx.OK | wx.ICON_ERROR)
-            return None      
+            return None
         print('run string is:')
         print(run_str)
         print()
@@ -287,7 +285,7 @@ class PecTrainer(wx.Frame):
         self.avg = self.avg - np.sum(self.avg) / len(self.avg)
 
     def load_file(self, event: wx.Event) -> None:
-        fd = wx.FileDialog(self.panel, 'Load PEC file', '','', 'PEC Files (PEC*.json)|PEC*.json', wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        fd = wx.FileDialog(self.panel, 'Load PEC file', '', '', 'PEC Files (PEC*.json)|PEC*.json', wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         fd.ShowModal()
         fpath = fd.GetPath()
         fd.Destroy()
@@ -362,9 +360,9 @@ class PecTrainer(wx.Frame):
         else:
             print('no data to plot')
             return
-        colors = ['brown', 'pink', 'gray', 'olive', 'cyan', 'seagreen', 'cornflowerblue', 'coral', 'gold']    
+        colors = ['brown', 'pink', 'gray', 'olive', 'cyan', 'seagreen', 'cornflowerblue', 'coral', 'gold']
         for i, r in enumerate(self.runs):
-            self.plotframe.oplot(x, self.runs[i] * 15 / 1024, color=colors[i%len(colors)], alpha=0.7)
+            self.plotframe.oplot(x, self.runs[i] * 15 / 1024, color=colors[i % len(colors)], alpha=0.7)
         if self.avg is not None:
             self.plotframe.oplot(x, self.avg * 15 / 1024, color='black', linewidth=2)
         self.plotframe.set_xlabel('cycle time (s)')
@@ -373,13 +371,15 @@ class PecTrainer(wx.Frame):
 
     def OnExit(self, event):
         try:
-            if self.plotframe != None:  self.plotframe.onExit()
-        except:
+            if self.plotframe is not None:
+                self.plotframe.onExit()
+        except:  # noqa E722
             pass
         self.Destroy()
 
+
 if __name__ == '__main__':
     app = wx.App()
-    f = PecTrainer(None,-1)
+    f = PecTrainer(None, -1)
     f.Show(True)
     app.MainLoop()

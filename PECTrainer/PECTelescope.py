@@ -2,6 +2,7 @@ import time
 import win32com.client
 from typing import Tuple
 
+
 class PECTelescope:
     def __init__(self) -> None:
         self.tel = None
@@ -32,7 +33,7 @@ class PECTelescope:
             except Exception as e:
                 print('error setting connect value for existing telescope', e)
                 return False
-        
+
         try:
             self.tel = win32com.client.Dispatch(self.scope_name)
             if self.tel.Connected != on:
@@ -79,7 +80,7 @@ class PECTelescope:
     def seek_index(self) -> bool:
         cmdstr = 'P\x01\x10\x19\x00\x00\x00\x00'
         try:
-            s = self.tel.CommandString(cmdstr, False)
+            _ = self.tel.CommandString(cmdstr, False)
         except Exception as e:
             print('exception in seek index', e)
             return False
@@ -132,18 +133,18 @@ class PECTelescope:
         except Exception as e:
             print('version exception', e)
             return 'Error'
-        
+
     def Action(self, cmdstr, data) -> str:
         rc = self.tel.Action(cmdstr, data)
         return rc
-    
+
     def mark_ra(self) -> None:
         self.ref_ra = self.tel.RightAscension
         print(f'reference RA is {self.ref_ra}')
 
     def return_ra(self) -> None:
         # query rates to make sure ascom driver is happy
-        rates = self.tel.AxisRates()
+        _ = self.tel.AxisRates()
         ra = self.tel.RightAscension
         deg = (self.ref_ra - ra) * 15
         deg = deg - 360 if deg >= 180 else deg
