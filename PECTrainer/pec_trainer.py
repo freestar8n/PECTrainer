@@ -3,7 +3,6 @@ import json
 import pathlib
 import numpy as np
 import wx
-import wx.lib.agw.floatspin as FS
 from wxmplot.plotframe import PlotFrame
 from pec_telescope import PECTelescope
 from typing import List
@@ -13,7 +12,8 @@ class PecTrainer(wx.Frame):
     def __init__(self, parent=None, *args, **kwds):
 
         self.tel = PECTelescope()
-        self.worm_period = 299.1
+        # use large guess for worm period and find actual value by timing pec period
+        self.worm_period = 500
         self.mount_name = 'unknown'
         self.avg = None
 
@@ -36,11 +36,7 @@ class PecTrainer(wx.Frame):
         panelsizer.Add(wx.StaticText(self.panel, -1, 'by Frank Freestar8n'), 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         self.b_choose = wx.Button(self.panel, -1, 'Choose mount',    size=(-1, -1))
-        period_label = wx.StaticText(self.panel, -1, 'Worm Period (s)')
-        period_label.SetToolTip('Enter the worm period for the mount')
-        self.fs_period = FS.FloatSpin(self.panel, -1, min_val=100, max_val=900, increment=0.1, value=self.worm_period, size=(80, -1))
-        self.fs_period.SetFormat("%f")
-        self.fs_period.SetDigits(1)
+
         self.cb_con = wx.CheckBox(self.panel, -1, 'Connect', size=(-1, -1))
         cycles_label = wx.StaticText(self.panel, -1, 'N Cycles')
         cycles_label.SetToolTip('Enter the number of worm cycles to train and average')
@@ -69,13 +65,6 @@ class PecTrainer(wx.Frame):
         self.cb_playback.Disable()
 
         panelsizer.Add(self.b_choose, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
-
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(period_label, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
-        hbox.AddStretchSpacer(1)
-        hbox.Add(self.fs_period, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
-        panelsizer.Add(hbox, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
-
         panelsizer.Add(self.cb_con, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -86,11 +75,13 @@ class PecTrainer(wx.Frame):
 
         panelsizer.Add(self.cb_index, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_start, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(self.current_cycle_label, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         hbox2.AddStretchSpacer(1)
         hbox2.Add(self.c_current_cycle, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(hbox2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+
         panelsizer.Add(self.b_cancel, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_upload, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_download, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
@@ -176,7 +167,7 @@ class PecTrainer(wx.Frame):
     def start(self, event: wx.Event):
         # start next record of worm period
         if event:
-            # this was initiated by button press so it is the first one
+            # this was initiated by button press so it is the first one, so clear any old info
             self.avg = None
             self.runs = []
         if not self.tel.record(True):
@@ -206,6 +197,7 @@ class PecTrainer(wx.Frame):
         self.b_download.Enable()
 
     def make_file_name(self, path: pathlib.Path, stem: str, suffix='json'):
+        "Find the next filename for this date."
         date = datetime.datetime.now()
         date_str = f'{date.year}{date.month:02d}{date.day:02d}'
         index = 0
@@ -261,6 +253,7 @@ class PecTrainer(wx.Frame):
         print('run string is:')
         print(run_str)
         print()
+
         # convert to signed integer
         run = np.array([int(s) for s in run_str.split(',')])
         run = np.where(run > 128, run - 256, run)
@@ -269,10 +262,14 @@ class PecTrainer(wx.Frame):
         print(' '.join(s))
         if raw:
             return run
+
         # remove drift
         run = run - np.sum(run) / len(run)
+
+        # clip
         run = np.where(run > 128, 128, run)
         run = np.where(run < -127, -127, run)
+
         # run is now signed rate relative to sidereal in units of sidereal/1024
         return run
 
@@ -328,6 +325,8 @@ class PecTrainer(wx.Frame):
             self.plot_cycles()
             return
         print('record done')
+        # set the worm period based on measured time for each cycle
+        self.worm_period = self.cycle_time_elapsed()
         self.timer_record.Stop()
         self.get_pec_data()
         self.run_number += 1
@@ -346,7 +345,6 @@ class PecTrainer(wx.Frame):
     def plot_cycles(self, live=True):
         elapsed = self.cycle_time_elapsed() if live else 0
         self.ShowPlotFrame(False, False)
-        self.worm_period = self.fs_period.GetValue()
         if live and not self.runs:
             self.plotframe.plot([elapsed], [0], xmin=0, xmax=self.worm_period, ymin=-5, ymax=5, marker='o')
             self.ShowPlotFrame(True, False)
