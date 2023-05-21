@@ -1,11 +1,66 @@
 import time
 import win32com.client
-from typing import Tuple
+from typing import List, Protocol, Tuple
+
+
+class ASCOMRate:
+    Minimum: float
+    Maximum: float
+
+
+class MountASCOMInterface(Protocol):
+    Connected: bool
+    Tracking: bool
+    Slewing: bool
+    RightAscension: float
+    Declination: float
+    CanPark: bool
+    CanUnPark: bool
+    SideOfPier: int
+    GuideRateRightAscension: float
+    GuideRateDeclination: float
+    Azimuth: float
+    Altitude: float
+    CanSync: bool
+
+    def Park():
+        pass
+
+    def Unpark():
+        pass
+
+    def DestinationSideOfPier(ra: float, dec: float) -> int:
+        return 0
+
+    def CommandString(cmd: str, doit: bool) -> str:
+        return ''
+
+    def MoveAxis(ax: int, rate: float):
+        pass
+
+    def AxisRates(ax: int) -> List[ASCOMRate]:
+        rate = ASCOMRate(Minimum=0, Maximum=1)
+        return [rate]
+
+    def Action(cmd: str, msg: str):
+        pass
+
+    def PulseGuide(dir: int, duration: int):
+        pass
+
+    def SyncToCoordinates(ra: float, dec: float):
+        pass
+
+    def SlewToCoordinates(ra: float, dec: float):
+        pass
+
+    def CanMoveAxis(ax: int) -> bool:
+        return True
 
 
 class PECTelescope:
     def __init__(self) -> None:
-        self.tel = None
+        self.tel: MountASCOMInterface = None
         self.ref_ra = 0
 
     def choose(self) -> bool:
@@ -35,7 +90,7 @@ class PECTelescope:
                 return False
 
         try:
-            self.tel = win32com.client.Dispatch(self.scope_name)
+            self.tel: MountASCOMInterface = win32com.client.Dispatch(self.scope_name)
             if self.tel.Connected != on:
                 self.tel.Connected = on
                 print('connected status now', on)
