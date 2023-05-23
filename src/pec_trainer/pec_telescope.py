@@ -78,26 +78,24 @@ class PECTelescope:
             return False
         return True
 
-    def connect(self, on: bool) -> bool:
+    def connect(self, new_state: bool) -> bool:
         if self.tel:
             try:
-                if self.tel.Connected != on:
-                    self.tel.Connected = on
-                    print('connected now', on)
+                if self.tel.Connected != new_state:
+                    self.tel.Connected = new_state
                     return True
             except Exception as e:
-                print('error setting connect value for existing telescope', e)
+                print('error setting connection state', e)
                 return False
 
         try:
             self.tel: MountASCOMInterface = win32com.client.Dispatch(self.scope_name)
-            if self.tel.Connected != on:
-                self.tel.Connected = on
-                print('connected status now', on)
+            if self.tel.Connected != new_state:
+                self.tel.Connected = new_state
         except Exception as e:
-            print('could not set connect state for telescope', e)
+            print('could not set connection state for telescope', e)
             return False
-        print('connected status now', on)
+        print('connection state:', new_state)
         time.sleep(1)
         return True
 
@@ -133,6 +131,7 @@ class PECTelescope:
             return False
 
     def seek_index(self) -> bool:
+        print('seek index')
         cmdstr = 'P\x01\x10\x19\x00\x00\x00\x00'
         try:
             _ = self.tel.CommandString(cmdstr, False)
@@ -141,8 +140,8 @@ class PECTelescope:
             return False
         return True
 
-    def index_value(self) -> Tuple[bool, bool]:
-        # returns index value and success
+    def index_found(self) -> Tuple[bool, bool]:
+        # returns index found and success
         cmdstr = 'P\x01\x10\x18\x00\x00\x00\x01'
         try:
             s = self.tel.CommandString(cmdstr, False)
@@ -150,20 +149,43 @@ class PECTelescope:
                 return False, True
             return True, True
         except Exception as e:
-            print('exception in index value', e)
+            print('exception in index_found', e)
             return False, False
 
     def set_index(self) -> None:
-        if self.index_value():
+        found, _ = self.index_found()
+        if found:
             print('already have index')
             return
         print('seeking index')
         self.seek_index()
         # this could go forever
-        while not self.index_value():
+        while not found:
             print('wait for index')
             time.sleep(1)
+            found, _ = self.index_found()
         print('have index')
+
+    def index_value(self) -> int:
+        # returns current index value
+        cmdstr = 'P\x01\x10\x0e\x00\x00\x00\x01'
+        try:
+            s = self.tel.CommandString(cmdstr, False)
+            return ord(s[0])
+        except Exception as e:
+            print('exception in index_value', e)
+            return 0
+
+    def bin_value(self, index) -> int:
+        # returns current index value
+        cmdstr = 'P\x02\x10\x30' + chr(0x40 + index) + '\x00\x00\x01'
+        try:
+            s = self.tel.CommandString(cmdstr, False)
+            v = ord(s[0])
+            return v - 256 if v > 128 else v
+        except Exception as e:
+            print('exception in index_value', e)
+            return 0
 
     def playback(self, on: bool) -> bool:
         if on:
@@ -199,7 +221,7 @@ class PECTelescope:
 
     def return_ra(self) -> None:
         # query rates to make sure ascom driver is happy
-        _ = self.tel.AxisRates()
+        _ = self.tel.AxisRates(0)
         ra = self.tel.RightAscension
         deg = (self.ref_ra - ra) * 15
         deg = deg - 360 if deg >= 180 else deg

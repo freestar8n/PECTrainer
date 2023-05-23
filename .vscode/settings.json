@@ -5,5 +5,9 @@
         "--max-line-length",
         "140"
     ],
-    "editor.rulers": [140]
+    "editor.rulers": [
+        140
+    ],
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": false
 }

@@ -1,5 +1,31 @@
-numpy
-pywin32
-wxmplot
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pectrainer"
+version = "1.0.0"
+description = "Train PEC for Celestron mounts"
+readme = "README.md"
+authors = [{ name = "Frank Freestar8n", email = "freestar8n@yahoo.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["pec", "celestron", "autoguide"]
+dependencies = [
+    "numpy",
+    "pywin32",
+    "wxmplot"
+]
+requires-python = ">=3.7"
+
+[project.urls]
+Homepage = "https://github.com/freestar8n/PECTrainer"
+
+[project.scripts]
+pectrainer = "pec_trainer.__main__:main"
 
 
