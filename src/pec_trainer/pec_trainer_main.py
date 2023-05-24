@@ -2,24 +2,23 @@ import datetime
 import json
 import pathlib
 import numpy as np
-import warnings
+from typing import List
+
 import wx
 from wxmplot.plotframe import PlotFrame
+
 from pec_trainer.pec_telescope import PECTelescope
-from typing import List
 
 
 class PECTrainer(wx.Frame):
     def __init__(self, parent=None, *args, **kwds):
 
         self.tel = PECTelescope()
-        # use large guess for worm period and find actual value by timing pec period
         self.worm_period = 500
+        self.n_bins = 88
         self.mount_name = 'unknown'
         self.avg = None
-        self.pec_bins = []
-        self.bin_values = []
-        self.prev_index = -1
+        self.pec_bins = set()
 
         kwds["style"] = wx.DEFAULT_FRAME_STYLE | wx.RESIZE_BORDER | wx.TAB_TRAVERSAL
 
@@ -42,6 +41,7 @@ class PECTrainer(wx.Frame):
         self.b_choose = wx.Button(self.panel, -1, 'Choose mount',    size=(-1, -1))
 
         self.cb_con = wx.CheckBox(self.panel, -1, 'Connect', size=(-1, -1))
+        self.cb_con.Disable()
         cycles_label = wx.StaticText(self.panel, -1, 'N Cycles')
         cycles_label.SetToolTip('Enter the number of worm cycles to train and average')
         self.c_n_cycles = wx.Choice(self.panel, -1, choices=[str(i + 1) for i in range(10)], size=(-1, -1))
@@ -57,6 +57,10 @@ class PECTrainer(wx.Frame):
         self.c_current_cycle = wx.Choice(self.panel, -1, choices=[str(i + 1) for i in range(10)], size=(-1, -1))
         self.c_current_cycle.SetSelection(0)
         self.c_current_cycle.Disable()
+        self.g_progress = wx.Gauge(self.panel, -1, size=(200, -1))
+        self.g_progress.SetRange(self.n_bins)
+        self.g_progress.SetValue(0)
+        self.g_progress.Disable()
         self.b_cancel = wx.Button(self.panel, -1, 'Stop training',    size=(-1, -1))
         self.b_cancel.Disable()
         self.b_upload = wx.Button(self.panel, -1, 'Upload to mount',    size=(-1, -1))
@@ -88,6 +92,7 @@ class PECTrainer(wx.Frame):
         hbox2.Add(self.c_current_cycle, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(hbox2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
+        panelsizer.Add(self.g_progress, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_cancel, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_upload, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_download, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
@@ -125,6 +130,7 @@ class PECTrainer(wx.Frame):
     def choose(self, event: wx.Event):
         if not self.tel.choose():
             wx.MessageBox('Problem launching chooser', 'Error', wx.OK | wx.ICON_ERROR)
+        self.cb_con.Enable()
 
     def connect(self, event: wx.Event):
         doit = event.EventObject.Value
@@ -138,7 +144,7 @@ class PECTrainer(wx.Frame):
             self.tel.record(False)
             value, rc = self.tel.index_found()
             if not rc:
-                wx.MessageBox('Error getting index status', 'Error', wx.OK | wx.ICON_ERROR)
+                wx.MessageBox('Error getting index status\nMake sure the mount supports PEC', 'Error', wx.OK | wx.ICON_ERROR)
                 return
             if value:
                 self.cb_index.Value = True
@@ -148,6 +154,7 @@ class PECTrainer(wx.Frame):
                 self.cb_index.Enable()
             self.b_playback.Enable()
             self.b_download.Enable()
+            self.b_load_file.Enable()
         else:
             self.cb_index.Disable()
             self.b_start.Disable()
@@ -178,12 +185,14 @@ class PECTrainer(wx.Frame):
             # this was initiated by button press so it is the first one, so clear any old info
             self.avg = None
             self.runs = []
+            self.run_number = 0
             self.file_name = self.make_file_name(pathlib.Path.cwd(), 'PEC')
             self.tel.record(False)
             self.prev_index = -1
+            self.g_progress.Enable()
 
-        self.pec_bins = []
-        self.bin_values = []
+        self.g_progress.SetValue(0)
+        self.pec_bins = set()
         if not self.tel.record(True):
             wx.MessageBox('Error starting record', 'Error', wx.OK | wx.ICON_ERROR)
             return
@@ -194,8 +203,9 @@ class PECTrainer(wx.Frame):
         self.b_upload.Disable()
         self.b_download.Disable()
         self.b_load_file.Disable()
+        self.b_playback.Disable()
         self.timer_record.Start(1000)
-        print('start record')
+        print(f'start recording cycle {self.run_number + 1}')
         self.cycle_time = datetime.datetime.now()
 
     def cancel(self, event: wx.Event):
@@ -205,10 +215,13 @@ class PECTrainer(wx.Frame):
             return
         self.b_cancel.Disable()
         self.current_cycle_label.Disable()
+        self.g_progress.SetValue(0)
+        self.g_progress.Disable()
         if self.avg is not None:
             self.b_upload.Enable()
         self.b_start.Enable()
         self.b_download.Enable()
+        self.b_load_file.Enable()
 
     def make_file_name(self, path: pathlib.Path, stem: str, suffix='json'):
         "Find the next filename for this date."
@@ -229,20 +242,18 @@ class PECTrainer(wx.Frame):
     def upload(self, event: wx.Event):
         if self.avg is None:
             return
+
         a = np.where(self.avg < 0, 256 + self.avg, self.avg)
         a = np.int32(np.round(a))
 
         avg_str = ','.join([str(n) for n in a])
 
-        print('final avg string:')
-        print(avg_str)
-        print()
-
         print('load data to mount')
         try:
             self.tel.Action('Telescope:PecSetData', avg_str)
+            wx.MessageBox('Uploaded average PE curve to the mount', '', wx.OK)
         except Exception as e:
-            wx.MessageBox(f'Error loading data to mount {e}', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f'Error loading PE curve to the mount {e}', 'Error', wx.OK | wx.ICON_ERROR)
         print()
         self.b_start.Enable()
 
@@ -253,9 +264,6 @@ class PECTrainer(wx.Frame):
         except Exception as e:
             wx.MessageBox(f'Error getting PEC data from mount {e}', 'Error', wx.OK | wx.ICON_ERROR)
             return None
-        print('run string is:')
-        print(run_str)
-        print()
 
         # convert to signed integer
         run = np.array([int(s) for s in run_str.split(',')])
@@ -297,23 +305,22 @@ class PECTrainer(wx.Frame):
         self.avg = dic['avg']
         self.runs = dic['runs']
         self.worm_period = dic['worm_period']
-        self.plot_cycles(False)
+        self.plot_cycles()
 
     def download(self, event: wx.Event) -> None:
         self.avg = self.get_pec_from_mount(True)
         self.runs = []
-        self.plot_cycles(False)
+        self.plot_cycles()
 
     def ShowPlotFrame(self, do_raise=True, clear=True):
         "make sure plot frame is enabled and visible"
         if self.plotframe is None:
             self.plotframe = PlotFrame(self.panel, title='PEC Training Curves')
 
-        if do_raise:
-            self.plotframe.Raise()
         if clear:
             self.plotframe.panel.clear()
-            self.plotframe.reset_config()
+        if do_raise:
+            self.plotframe.Raise()
 
         try:
             self.plotframe.Show()
@@ -337,9 +344,11 @@ class PECTrainer(wx.Frame):
 
     def onTimer(self, event: wx.Event):
         if not self.tel.record_done():
-            self.plot_cycles()
+            self.pec_bins.add(self.tel.index_value())
+            self.g_progress.SetValue(len(self.pec_bins))
             return
-        print('record done')
+        print(f'cycle {self.run_number + 1} complete')
+        self.g_progress.SetValue(0)
         # set the worm period based on measured time for each cycle
         self.worm_period = self.cycle_time_elapsed()
         self.timer_record.Stop()
@@ -347,6 +356,7 @@ class PECTrainer(wx.Frame):
         # save and overwrite the file after each worm period, saving all runs each time
         self.save_to_file()
         self.run_number += 1
+        self.plot_cycles()
         if self.run_number >= self.c_n_cycles.GetCurrentSelection() + 1:
             # we are done training
             self.b_cancel.Disable()
@@ -354,72 +364,43 @@ class PECTrainer(wx.Frame):
             self.b_upload.Enable()
             self.b_download.Enable()
             self.b_load_file.Enable()
-            self.plot_cycles(False)
+            self.b_playback.Enable()
+            self.g_progress.Disable()
+            self.upload(None)
             return
         # start next cycle
         self.start(None)
 
-    def plot_cycles(self, live=True):
-        elapsed = self.cycle_time_elapsed() if live else 0
-        # self.ShowPlotFrame(False, False)
-        ylab = 'PEC Correction (arc-sec/s)'
-        if live:
-            index = self.tel.index_value()
-            print(index, self.prev_index)
-            if self.prev_index >= 0 and self.prev_index != index:
-                self.pec_bins.append(self.prev_index)
-                value = self.tel.bin_value(self.prev_index)
-                self.bin_values.append(value)
-                print('add values', self.prev_index, value)
-                self.prev_index = index
-            if not self.runs:
-                if self.prev_index < 0:
-                    self.prev_index = index
-                    return
-                if len(self.pec_bins) < 1:
-                    return
-                self.ShowPlotFrame(False, False)
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    self.plotframe.scatterplot(self.pec_bins, np.array(self.bin_values) * 15 / 1024, xmin=0, xmax=90, ymin=-1, ymax=1, marker='o', xlabel='PEC Bin', ylabel=ylab, color='blue')  # noqa E501
-                self.ShowPlotFrame(True, False)
-                return
+    def plot_cycles(self, live=False):
         x = []
-        ymin = 0
-        ymax = 0
         if self.runs:
             x = np.arange(len(self.runs[0])) / len(self.runs[0]) * self.worm_period
-            ymin = np.min([np.min(r) for r in self.runs])
-            ymax = np.max([np.max(r) for r in self.runs])
-            if self.avg is not None:
-                ymin = np.min([ymin, np.min(self.avg)])
-                ymax = np.max([ymax, np.max(self.avg)])
         elif self.avg is not None:
             x = np.arange(len(self.avg)) / len(self.avg) * self.worm_period
-            ymin = np.min(self.avg)
-            ymax = np.max(self.avg)
         else:
             print('no data to plot')
             return
-        ymin *= 15 / 1024
-        ymax *= 15 / 1024
-        if ymin == ymax:
-            ymin = -1
-            ymax = 1
-        self.ShowPlotFrame(False, False)
-        colors = ['brown', 'pink', 'gray', 'olive', 'cyan', 'seagreen', 'cornflowerblue', 'coral', 'gold']
+        self.ShowPlotFrame(False, True)
+        colors = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
         xlab = 'Cycle Time (s)'
+        ylab = 'PE Correction Rate (arc-sec/s)'
+        plotted = False
         for i, r in enumerate(self.runs):
+            plotted = True
             if i == 0:
                 self.plotframe.plot(
-                    x, self.runs[i] * 15 / 1024, color=colors[i % len(colors)], alpha=0.7, xmin=0, xmax=self.worm_period, ymin=ymin, ymax=ymax, delay_draw=True, xlabel=xlab, ylabel=ylab  # noqa E501
+                    x, np.array(self.runs[i]) * 15 / 1024, color=colors[i % len(colors)], alpha=0.9, xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0   # noqa E501
                 )
             else:
-                self.plotframe.oplot(x, self.runs[i] * 15 / 1024, color=colors[i % len(colors)], alpha=0.7, delay_draw=True)
+                self.plotframe.oplot(
+                    x, np.array(self.runs[i]) * 15 / 1024, color=colors[i % len(colors)], alpha=0.9, linewidth=2, markersize=0
+                )
         if self.avg is not None:
-            self.plotframe.oplot(x, self.avg * 15 / 1024, color='black', linewidth=2, delay_draw=True)
-        if live:
-            self.plotframe.oplot([elapsed], [0], marker='o', color='blue')
+            if plotted:
+                if len(self.runs) > 1:
+                    self.plotframe.oplot(x, np.array(self.avg) * 15 / 1024, color='black', linewidth=2, markersize=0)
+            else:
+                self.plotframe.plot(x, np.array(self.avg) * 15 / 1024, color='black', xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0)   # noqa E501
         self.ShowPlotFrame(True, False)
 
     def OnExit(self, event):
