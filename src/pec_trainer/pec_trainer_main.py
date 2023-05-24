@@ -71,6 +71,10 @@ class PECTrainer(wx.Frame):
         self.b_download.Disable()
         self.b_load_file = wx.Button(self.panel, -1, 'Load and view file',    size=(-1, -1))
         self.b_load_file.SetToolTip('Load curve from file to view with option to upload to mount')
+        self.cb_rate = wx.CheckBox(self.panel, -1, 'Plot PE as rate', size=(-1, -1))
+        self.cb_rate.SetValue(True)
+        self.cb_rate.Enable()
+        self.cb_rate.SetToolTip('Show PE as rate instead of arc-sec curve')
         self.b_playback = wx.Button(self.panel, -1, 'Enable mount PEC playback', size=(-1, -1))
         self.b_playback.Disable()
 
@@ -97,6 +101,7 @@ class PECTrainer(wx.Frame):
         panelsizer.Add(self.b_upload, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_download, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_load_file, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
+        panelsizer.Add(self.cb_rate, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
         panelsizer.Add(self.b_playback, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER | wx.LEFT, pad)
 
         self.panel.SetSizer(panelsizer)
@@ -114,6 +119,7 @@ class PECTrainer(wx.Frame):
         self.b_upload.Bind(wx.EVT_BUTTON, self.upload)
         self.b_download.Bind(wx.EVT_BUTTON, self.download)
         self.b_load_file.Bind(wx.EVT_BUTTON, self.load_file)
+        self.cb_rate.Bind(wx.EVT_CHECKBOX, self.rate)
         self.b_playback.Bind(wx.EVT_CHECKBOX, self.set_playback)
 
         self.run_number = 0
@@ -371,6 +377,16 @@ class PECTrainer(wx.Frame):
         # start next cycle
         self.start(None)
 
+    def rate(self, event: wx.Event):
+        self.plot_cycles()
+
+    def pe(self, bins):
+        bins = np.array(bins) * 15 / 1024
+        if self.cb_rate.Value:
+            return bins
+        bins *= self.worm_period / self.n_bins
+        return np.cumsum(bins)
+
     def plot_cycles(self, live=False):
         x = []
         if self.runs:
@@ -383,24 +399,24 @@ class PECTrainer(wx.Frame):
         self.ShowPlotFrame(False, True)
         colors = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
         xlab = 'Cycle Time (s)'
-        ylab = 'PE Correction Rate (arc-sec/s)'
+        ylab = 'PEC Correction Rate (arc-sec/s)' if self.cb_rate.Value else 'PEC (arc-sec)'
         plotted = False
         for i, r in enumerate(self.runs):
             plotted = True
             if i == 0:
                 self.plotframe.plot(
-                    x, np.array(self.runs[i]) * 15 / 1024, color=colors[i % len(colors)], alpha=0.9, xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0   # noqa E501
+                    x, self.pe(self.runs[i]), color=colors[i % len(colors)], alpha=0.9, xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0   # noqa E501
                 )
             else:
                 self.plotframe.oplot(
-                    x, np.array(self.runs[i]) * 15 / 1024, color=colors[i % len(colors)], alpha=0.9, linewidth=2, markersize=0
+                    x, self.pe(self.runs[i]), color=colors[i % len(colors)], alpha=0.9, linewidth=2, markersize=0
                 )
         if self.avg is not None:
             if plotted:
                 if len(self.runs) > 1:
-                    self.plotframe.oplot(x, np.array(self.avg) * 15 / 1024, color='black', linewidth=2, markersize=0)
+                    self.plotframe.oplot(x, self.pe(self.avg), color='black', linewidth=2, markersize=0)
             else:
-                self.plotframe.plot(x, np.array(self.avg) * 15 / 1024, color='black', xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0)   # noqa E501
+                self.plotframe.plot(x, self.pe(self.avg), color='black', xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0)   # noqa E501
         self.ShowPlotFrame(True, False)
 
     def OnExit(self, event):
