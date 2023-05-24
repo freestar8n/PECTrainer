@@ -72,7 +72,7 @@ class PECTrainer(wx.Frame):
         self.b_load_file = wx.Button(self.panel, -1, 'Load and view file',    size=(-1, -1))
         self.b_load_file.SetToolTip('Load curve from file to view with option to upload to mount')
         self.cb_rate = wx.CheckBox(self.panel, -1, 'Plot PE as rate', size=(-1, -1))
-        self.cb_rate.SetValue(True)
+        self.cb_rate.SetValue(False)
         self.cb_rate.Enable()
         self.cb_rate.SetToolTip('Show PE as rate instead of arc-sec curve')
         self.b_playback = wx.Button(self.panel, -1, 'Enable mount PEC playback', size=(-1, -1))
