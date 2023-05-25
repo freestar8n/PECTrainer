@@ -16,9 +16,9 @@ classifiers = [
 ]
 keywords = ["pec", "celestron", "autoguide"]
 dependencies = [
-    "numpy",
-    "pywin32",
-    "wxmplot"
+    "numpy>=1.24",
+    "pywin32>=300",
+    "wxmplot>=0.9.53"
 ]
 requires-python = ">=3.7"
 

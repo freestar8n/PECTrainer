@@ -1,3 +1,6 @@
+import sys
+if sys.version_info.major < 3 or sys.version_info < (3, 7):
+    raise Exception('This module requires python 3.7 or later')
 import time
 import win32com.client
 from typing import List, Protocol, Tuple
