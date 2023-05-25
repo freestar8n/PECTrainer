@@ -11,7 +11,7 @@ from pec_trainer.pec_telescope import PECTelescope
 
 
 class PECTrainer(wx.Frame):
-    def __init__(self, parent=None, *args, **kwds):
+    def __init__(self, parent=None, *args, **kwds) -> None:
 
         self.tel = PECTelescope()
         self.worm_period = 500
@@ -133,12 +133,12 @@ class PECTrainer(wx.Frame):
 
         self.Refresh()
 
-    def choose(self, event: wx.Event):
+    def choose(self, event: wx.Event) -> None:
         if not self.tel.choose():
             wx.MessageBox('Problem launching chooser', 'Error', wx.OK | wx.ICON_ERROR)
         self.cb_con.Enable()
 
-    def connect(self, event: wx.Event):
+    def connect(self, event: wx.Event) -> None:
         doit = event.EventObject.Value
         ok = self.tel.connect(doit)
         if doit and not ok:
@@ -168,7 +168,7 @@ class PECTrainer(wx.Frame):
             self.b_upload.Disable()
             self.b_download.Disable()
 
-    def find_index(self, event: wx.Event):
+    def find_index(self, event: wx.Event) -> None:
         print('find index')
         value, rc = self.tel.index_found()
         print('index found is', value)
@@ -182,11 +182,11 @@ class PECTrainer(wx.Frame):
         self.cb_index.Disable()
         self.b_start.Enable()
 
-    def cycle_time_elapsed(self):
+    def cycle_time_elapsed(self) -> float:
         return (datetime.datetime.now() - self.cycle_time).total_seconds()
 
-    def start(self, event: wx.Event):
-        # start next record of worm period
+    def start(self, event: wx.Event) -> None:
+        "Start recording next worm cycle."
         if event:
             # this was initiated by button press so it is the first one, so clear any old info
             self.avg = None
@@ -214,7 +214,7 @@ class PECTrainer(wx.Frame):
         print(f'start recording cycle {self.run_number + 1}')
         self.cycle_time = datetime.datetime.now()
 
-    def cancel(self, event: wx.Event):
+    def cancel(self, event: wx.Event) -> None:
         self.timer_record.Stop()
         if not self.tel.record(False):
             wx.MessageBox('Error canceling record', 'Error', wx.OK | wx.ICON_ERROR)
@@ -229,7 +229,7 @@ class PECTrainer(wx.Frame):
         self.b_download.Enable()
         self.b_load_file.Enable()
 
-    def make_file_name(self, path: pathlib.Path, stem: str, suffix='json'):
+    def make_file_name(self, path: pathlib.Path, stem: str, suffix='json') -> pathlib.Path:
         "Find the next filename for this date."
         date = datetime.datetime.now()
         date_str = f'{date.year}{date.month:02d}{date.day:02d}'
@@ -241,11 +241,11 @@ class PECTrainer(wx.Frame):
                 return fpath
             index += 1
 
-    def set_playback(self, event: wx.Event):
+    def set_playback(self, event: wx.Event) -> None:
         if not self.tel.playback(True):
             wx.MessageBox('Error enabling playback', 'Error', wx.OK | wx.ICON_ERROR)
 
-    def upload(self, event: wx.Event):
+    def upload(self, event: wx.Event) -> None:
         if self.avg is None:
             return
 
@@ -318,7 +318,7 @@ class PECTrainer(wx.Frame):
         self.runs = []
         self.plot_cycles()
 
-    def ShowPlotFrame(self, do_raise=True, clear=True):
+    def ShowPlotFrame(self, do_raise=True, clear=True) -> None:
         "make sure plot frame is enabled and visible"
         if self.plotframe is None:
             self.plotframe = PlotFrame(self.panel, title='PEC Training Curves')
@@ -335,7 +335,7 @@ class PECTrainer(wx.Frame):
             self.plotframe = PlotFrame(self.panel)
             self.plotframe.Show()
 
-    def save_to_file(self):
+    def save_to_file(self) -> None:
         clean_runs = [r.tolist() for r in self.runs]
         dic = {
             'runs': clean_runs,
@@ -348,7 +348,7 @@ class PECTrainer(wx.Frame):
             json.dump(dic, f, indent=4, sort_keys=True, default=str)
         print('saved to file', self.file_name)
 
-    def onTimer(self, event: wx.Event):
+    def onTimer(self, event: wx.Event) -> None:
         if not self.tel.record_done():
             self.pec_bins.add(self.tel.index_value())
             self.g_progress.SetValue(len(self.pec_bins))
@@ -363,7 +363,7 @@ class PECTrainer(wx.Frame):
         self.save_to_file()
         self.run_number += 1
         self.plot_cycles()
-        if self.run_number >= self.c_n_cycles.GetCurrentSelection() + 1:
+        if self.run_number > self.c_n_cycles.GetCurrentSelection():
             # we are done training
             self.b_cancel.Disable()
             self.current_cycle_label.Disable()
@@ -377,17 +377,17 @@ class PECTrainer(wx.Frame):
         # start next cycle
         self.start(None)
 
-    def rate(self, event: wx.Event):
+    def rate(self, event: wx.Event) -> None:
         self.plot_cycles()
 
-    def pe(self, bins):
+    def pe(self, bins) -> np.array:
         bins = np.array(bins) * 15 / 1024
         if self.cb_rate.Value:
             return bins
         bins *= self.worm_period / self.n_bins
         return np.cumsum(bins)
 
-    def plot_cycles(self, live=False):
+    def plot_cycles(self, live=False) -> None:
         x = []
         if self.runs:
             x = np.arange(len(self.runs[0])) / len(self.runs[0]) * self.worm_period
@@ -419,7 +419,7 @@ class PECTrainer(wx.Frame):
                 self.plotframe.plot(x, self.pe(self.avg), color='black', xmin=0, xmax=self.worm_period, xlabel=xlab, ylabel=ylab, linewidth=2, markersize=0)   # noqa E501
         self.ShowPlotFrame(True, False)
 
-    def OnExit(self, event):
+    def OnExit(self, event) -> None:
         try:
             if self.plotframe is not None:
                 self.plotframe.onExit()

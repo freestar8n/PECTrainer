@@ -1,5 +1,7 @@
 # PECTrainer
-`PECTrainer` is a python tool to train Periodic Error Correction (PEC) on Celestron telescope mounts.  It is similar to the earlier PECTool but with some additional features.  It works along with an autoguider to record and average multiple worm periods of the mount behavior to provide a reliable table of corrections to improve tracking.
+`PECTrainer` is a python tool to train Periodic Error Correction (PEC) on Celestron telescope mounts.  It is similar to the earlier PECTool but with some additional features.  It works together with an autoguider to record and average multiple worm cycles of the mount behavior to provide a reliable table of corrections to improve tracking.
+
+![Sample view of PECTrainer](docs/PECTrainerView.png)
 
 ## Caveats
 - Only works with Celestron mounts and only those that support PEC
@@ -36,7 +38,9 @@
 - When complete the average curve will automatically be uploaded to the mount
 - To start playback of the recorded PEC curve, press `Enable mount PEC playback`, or enable playback using the handcontrol
 - You are now done and can exit
-- The PEC graph may be displayed either as a normal PE curve in arc-sec, or as a changing rate over time in arc-sec/s
+- The PEC graph may be displayed either as a normal PE curve in arc-sec, or as a changing rate over time in arc-sec/s.  Here is a view as rate.  Note that the gearbox term shows clearly as a sinusoid with approximately 21 second period.  Other mounts will show different periods
+
+![View of PE curve as rate](docs/PECTrainerRateView.png)
 
 ## Additional features
 - You may download and view the current PEC curve in the mount using `Download from mount`
@@ -55,9 +59,12 @@
 
 ## Notes
 - Make sure your mount is Celestron and has support for PEC
-- Behavior on SynScan mounts is unknown
+- Behavior on SynScan mounts is unknown, but it may work
 - Once the mount is trained you can use the mount normally and you don't need to connect through the handcontrol.  You can also remove the handcontrol and use a different alignment app such as CPWI
 - There are issues with knowing if PEC playback is currently enabled, so the state is not displayed in the GUI.  When done with training, make sure the PEC playback is really happening by enabling it with the handcontrol or CPWI
 - Any drift in the PEC curves will be removed from the displayed plot and from the curve loaded to the mount
 - Declination guide corrections have no impact on the recorded curve
 - Some mounts don't guide well when PEC playback is enabled, but for Celestron mounts it can greatly improve guiding - particularly if the gearbox term is smoothed out
+
+
+[def]: docs/PECTrainerView.png

@@ -176,17 +176,6 @@ class PECTelescope:
             print('exception in index_value', e)
             return 0
 
-    def bin_value(self, index) -> int:
-        # returns current index value
-        cmdstr = 'P\x02\x10\x30' + chr(0x40 + index) + '\x00\x00\x01'
-        try:
-            s = self.tel.CommandString(cmdstr, False)
-            v = ord(s[0])
-            return v - 256 if v > 128 else v
-        except Exception as e:
-            print('exception in index_value', e)
-            return 0
-
     def playback(self, on: bool) -> bool:
         if on:
             cmdstr = 'P\x02\x10\x0d\x01\x00\x00\x00'
