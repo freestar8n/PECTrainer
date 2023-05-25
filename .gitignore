@@ -341,3 +341,4 @@ ASALocalRun/
 .localhistory/
 
 *.json
+dist/
