@@ -1,7 +1,7 @@
 # PECTrainer
 `PECTrainer` is a python tool to train Periodic Error Correction (PEC) on Celestron telescope mounts.  It is similar to the earlier PECTool but with some additional features.  It works together with an autoguider to record and average multiple worm cycles of the mount behavior to provide a reliable table of corrections to improve tracking.
 
-![Sample view of PECTrainer](docs/PECTrainerView.png)
+![Sample view](https://www.dropbox.com/s/gcejvwrzxgkxq34/PECTrainerView.png?raw=1)
 
 ## Caveats
 - Only works with Celestron mounts and only those that support PEC
@@ -40,7 +40,7 @@
 - You are now done and can exit
 - The PEC graph may be displayed either as a normal PE curve in arc-sec, or as a changing rate over time in arc-sec/s.  Here is a view as rate.  Note that the gearbox term shows clearly as a sinusoid with approximately 21 second period.  Other mounts will show different periods
 
-![View of PE curve as rate](docs/PECTrainerRateView.png)
+![View of PE curve as rate](https://www.dropbox.com/s/ybo1dvb07nixf1b/PECTrainerRateView.png?raw=1)
 
 ## Additional features
 - You may download and view the current PEC curve in the mount using `Download from mount`
@@ -65,6 +65,3 @@
 - Any drift in the PEC curves will be removed from the displayed plot and from the curve loaded to the mount
 - Declination guide corrections have no impact on the recorded curve
 - Some mounts don't guide well when PEC playback is enabled, but for Celestron mounts it can greatly improve guiding - particularly if the gearbox term is smoothed out
-
-
-[def]: docs/PECTrainerView.png
