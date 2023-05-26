@@ -51,11 +51,11 @@
 ## For best results
 - Polar align the mount well, but no need for perfection.  Within a few arc-minutes is fine.
 - Autoguide on a star high up but reasonably near the equator - within 20 degrees perhaps.  You want to be close to the equator so the star is moving across the sky quickly, and high up so the seeing is better.
-- Use a short guide period of 1 second or so if possible.  [MetaGuide](https://www.smallstarspot.com/) works well for this.  Each PEC measurement is a few seconds long, and for a mount such as the `CGX-L` the gearbox terms around 21 seconds long are in phase on each cycle.  This means the PEC table can capture and correct such fast terms, but only if the guide exposures are short enough and the guide corrections happen around once per second.
+- Use a short guide period of 1 second or so if possible.  [MetaGuide](https://www.smallstarspot.com/) works well for this.  Each PEC measurement is a few seconds long, and for a mount such as the `CGX-L` the main belt or gear term is around 21 seconds long is in phase on each cycle.  This means the PEC table can capture and correct such fast terms, but only if the guide exposures are short enough and the guide corrections happen around once per second.
 - For best results record and average 6 or more cycles on a night with good seeing.
 - The [Celestron StarSense Autoguider](https://www.celestron.com/products/starsense-autoguider) should also work well for PEC training because it makes rapid guide corrections.
-- If the mount has gearbox terms that have the same phase on each cycle, they will stack on top of each other and show clearly in the average.  This is good and it means the PEC can smooth out the gearbox term.
-- ... But in contrast, if the gearbox terms are not in phase they will be different in each cycle and they won't stack in the average.  This means you should average many cycles so that the gearbox terms average out.  The PEC won't be able to smooth out the gearbox term - but at the same time the PEC curve won't have a residual gearbox term that would make tracking worse.
+- If the mount has belt or gear terms that have the same phase on each cycle, they will stack on top of each other and show clearly in the average.  This is good and it means the PEC can smooth out the term.
+- ... But in contrast, if the term is not in phase it will be different in each cycle and they won't stack in the average.  This means you should average many cycles so that the terms average out.  The PEC won't be able to smooth out the term - but at the same time the PEC curve won't have a residual gear term that would make tracking worse.
 
 ## Notes
 - Make sure your mount is Celestron and has support for PEC
@@ -64,4 +64,4 @@
 - There are issues with knowing if PEC playback is currently enabled, so the state is not displayed in the GUI.  When done with training, make sure the PEC playback is really happening by enabling it with the handcontrol or CPWI
 - Any drift in the PEC curves will be removed from the displayed plot and from the curve loaded to the mount
 - Declination guide corrections have no impact on the recorded curve
-- Some mounts don't guide well when PEC playback is enabled, but for Celestron mounts it can greatly improve guiding - particularly if the gearbox term is smoothed out
+- Some mounts don't guide well when PEC playback is enabled, but for Celestron mounts it can greatly improve guiding - particularly if the belt or gear term is smoothed out
